@@ -1,3 +1,7 @@
+import tkinter as tk
+from gui import LoginApp
+import core
+
 class WallpaperChanger:
     def __init__(self, screen_root):
         self.screen_root = screen_root
@@ -15,3 +19,6 @@ class WallpaperChanger:
     def update_wallpaper(self):
         # This method will fetch wallpaper IDs and change the wallpaper
         pass
+
+if __name__ == "__main__":
+    core.main()
