@@ -9,7 +9,7 @@ import subprocess
 from utils.login_fetcher import fetch_steam_cookies
 from utils.steam_fetcher import fetch_wallpaper_ids,WallpaperInfo
 from utils.display_utils import get_displays
-from utils.process_utils import kill_wallpaper_processes, run_wallpaper_engine, WallpaperManager
+from utils.process_utils import kill_wallpaper_processes, WallpaperManager
 import asyncio
 import concurrent.futures
 from queue import Queue
@@ -63,6 +63,7 @@ class LoginApp:
         self.wallpaper_checkboxes = {}  # Add dictionary to store checkbox variables
         self.image_cache = {}  # Add image cache
         self.future_tasks = set()  # Track async tasks
+        self.silent_mode = True  # Add silent mode state
 
         # Initialize GUI elements first
         self.setup_gui()
@@ -124,7 +125,7 @@ class LoginApp:
         self.login_button = ttk.Button(self.controls_frame, text=button_text, command=self.login)
         self.login_button.pack(side="left", padx=5)
 
-        # Add display controls frame
+        #Display controls frame
         self.display_controls = ttk.Frame(self.controls_frame)
         self.display_controls.pack(side="left", padx=5)
         
@@ -134,8 +135,10 @@ class LoginApp:
             command=self.refresh_displays
         )
         self.refresh_displays_btn.pack(side="left", padx=5)
+        
+        
 
-        # Add Select All button next to the refresh displays button
+        #Select All button next to the refresh displays button
         self.select_all_btn = ttk.Button(
             self.display_controls,
             text="Select All Wallpapers",
@@ -163,6 +166,14 @@ class LoginApp:
         # Scrollable wallpaper list
         self.wallpaper_frame = ScrollableFrame(self.main_frame)
         self.wallpaper_frame.pack(fill="both", expand=True, pady=10)
+
+        # Silent mode toggle
+        self.silent_button = ttk.Button(
+            self.controls_frame,
+            text="Silent Mode: On",  # Default to match WallpaperManager's default
+            command=self.toggle_silent
+        )
+        self.silent_button.pack(side="left", padx=5)
 
     def start_wallpaper_worker(self):
         """Start background worker for wallpaper changes"""
@@ -427,6 +438,14 @@ class LoginApp:
         # Force update of wallpaper buttons if wallpapers are loaded
         if self.wallpapers:
             self.display_wallpapers()
+    
+    def toggle_silent(self):
+        """Toggle silent mode"""
+        self.silent_mode = self.wallpaper_manager.toggle_silent_mode()
+        self.silent_button.config(
+            text=f"Silent Mode: {'On' if self.silent_mode else 'Off'}"
+        )
+        print(f"Silent mode {'enabled' if self.silent_mode else 'disabled'}")
 
     def load_displays(self):
         try:
