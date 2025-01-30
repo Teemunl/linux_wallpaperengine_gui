@@ -2,22 +2,25 @@
 
 # Linux Wallpaper Changer
 
-A simple application to change wallpapers on Linux using wallpapers from Steam Workshop subscriptions.
+Graphical interface for https://github.com/Almamu/linux-wallpaperengine.
 
 ## Features
 
-- Change wallpapers using the command line.
 - Fetch wallpaper IDs from your Steam Workshop subscriptions.
+- Change the wallpapers from the gui
+- Queue wallpaper changes
+
 
 ## Installation
-
-1. Clone the repository:
+1. Make sure you have https://github.com/Almamu/linux-wallpaperengine proberly working.
+   
+2. Clone the repository:
    ```
    git clone https://github.com/yourusername/linux-wallpaper-changer.git
    cd linux-wallpaper-changer
    ```
 
-2. Install the required dependencies:
+3. Install the required dependencies:
    ```
    pip install -r requirements.txt
    ```
