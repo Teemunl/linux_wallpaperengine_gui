@@ -52,6 +52,7 @@ class LoginApp:
         time.sleep(0.2)  # Give processes time to die
         
         # Initialize basic variables
+        
         self.wallpapers = []
         self.selected_wallpapers = []
         self.is_auto_switching = False

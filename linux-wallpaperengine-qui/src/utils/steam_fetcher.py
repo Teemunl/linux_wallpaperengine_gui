@@ -6,8 +6,8 @@ import re
 class WallpaperInfo(NamedTuple):
     id: str
     preview_url: str
-
-def fetch_wallpaper_ids(steam_url: str, cookies: Dict[str, str]) -> List[WallpaperInfo]:
+#ef fetch_wallpaper_ids(steam_url: str, cookies: Dict[str, str]) -> List[WallpaperInfo]:
+def fetch_wallpaper_ids(steam_url: str, cookies: str) -> List[WallpaperInfo]:
     all_wallpapers = []
     page = 1
     base_url = steam_url.split('?')[0]

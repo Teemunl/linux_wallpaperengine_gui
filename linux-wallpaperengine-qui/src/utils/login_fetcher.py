@@ -6,13 +6,12 @@ from typing import Dict
 def fetch_steam_cookies() -> Dict[str, str]:
     try:
         steam_cookies = {}
-        print("Loading cookies for domain: .steamcommunity.com")
+        print("Loading cookies for domain: steamcommunity.com")
         
         # Try loading cookies from Firefox explicitly
         try:
             cookies = browsercookie.firefox(domain_name='steamcommunity.com')
             print("Loaded cookies from Firefox.")
-            print("Cookies:", cookies)
         except Exception as e:
             print(f"Failed to load cookies from Firefox: {e}")
             cookies = None
@@ -33,10 +32,10 @@ def fetch_steam_cookies() -> Dict[str, str]:
         
         for cookie in cookies:
             steam_cookies[cookie.name] = cookie.value
-            
-        required_cookies = ['sessionid', 'steamLoginSecure']
+        #required_cookies = ['sessionid', 'steamLoginSecure']            
+        required_cookies = ['steamLoginSecure']
         missing_cookies = [c for c in required_cookies if c not in steam_cookies]
-        
+        print("Found cookies:", list(steam_cookies.keys()))
         if missing_cookies:
             raise Exception(f"Missing required Steam cookies: {missing_cookies}. Please login to Steam in your browser first.")
             
