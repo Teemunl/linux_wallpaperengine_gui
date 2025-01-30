@@ -27,7 +27,7 @@ A simple application to change wallpapers on Linux using wallpapers from Steam W
 To change the wallpaper, use the following command:
 
 ```
-linux-wallpaperengine --silent --screen-root DP-2 <wallpaper_id>
+python wallpaper_changer.py
 ```
 
 Replace `<wallpaper_id>` with the ID of the wallpaper you want to set.
