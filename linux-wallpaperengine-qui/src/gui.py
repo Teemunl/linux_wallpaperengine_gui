@@ -61,6 +61,8 @@ class LoginApp:
         self.button_cooldown = {}
         self.change_queue = Queue()
         self.wallpaper_checkboxes = {}  # Add dictionary to store checkbox variables
+        self.image_cache = {}  # Add image cache
+        self.future_tasks = set()  # Track async tasks
 
         # Initialize GUI elements first
         self.setup_gui()
@@ -201,18 +203,31 @@ class LoginApp:
             self.wallpapers = []  # Reset wallpapers on error
         return False
 
+    def cleanup_tasks(self):
+        """Clean up pending tasks"""
+        for future in self.future_tasks:
+            if not future.done():
+                future.cancel()
+        self.future_tasks.clear()
+
     def load_preview_image(self, url):
-        # Make image loading async
-        def fetch_image():
+        """Optimized image loading with caching"""
+        if url in self.image_cache:
+            return self.executor.submit(lambda: self.image_cache[url])
+        
+        def fetch_and_cache():
             try:
-                response = requests.get(url, timeout=5)  # Add timeout
+                response = requests.get(url, timeout=5)
                 img = Image.open(BytesIO(response.content))
                 img = img.resize((100, 100), Image.Resampling.LANCZOS)
+                self.image_cache[url] = img
                 return img
             except Exception:
                 return None
 
-        return self.executor.submit(fetch_image)
+        future = self.executor.submit(fetch_and_cache)
+        self.future_tasks.add(future)
+        return future
 
     def toggle_wallpaper(self, wallpaper_info):
         """Toggle individual wallpaper selection"""
@@ -283,79 +298,74 @@ class LoginApp:
             self.login_button.config(state='normal', text="Refresh Wallpapers")
 
     def display_wallpapers(self):
-        """Display wallpapers without any messages"""
-        # Clear existing wallpapers
+        """Optimized wallpaper display"""
+        # Clear existing
         for widget in self.wallpaper_frame.scrollable_frame.winfo_children():
             widget.destroy()
 
         if not self.wallpapers:
             return
 
-        # Set minimum size for the window and canvas
+        # Use fixed size
         self.root.minsize(500, 400)
         self.wallpaper_frame.canvas.configure(width=480, height=400)
         
-        # Create a progress bar
+        # Batch process wallpapers
+        BATCH_SIZE = 10
+        total = len(self.wallpapers)
         progress = ttk.Progressbar(self.wallpaper_frame.scrollable_frame, 
-                                 orient="horizontal", 
                                  length=200, 
                                  mode='determinate')
         progress.pack(pady=10)
-        total = len(self.wallpapers)
+
+        def process_batch(start_idx):
+            if start_idx >= total:
+                progress.destroy()
+                self.wallpaper_frame.scroll_to_top()
+                return
+
+            end_idx = min(start_idx + BATCH_SIZE, total)
+            batch = self.wallpapers[start_idx:end_idx]
+            
+            for wallpaper in batch:
+                self.create_wallpaper_entry(wallpaper)
+
+            progress['value'] = (end_idx / total) * 100
+            self.root.update_idletasks()
+            
+            # Schedule next batch
+            self.root.after(10, lambda: process_batch(end_idx))
+
+        # Start batch processing
+        process_batch(0)
+
+    def create_wallpaper_entry(self, wallpaper):
+        """Create single wallpaper entry"""
+        frame = ttk.Frame(self.wallpaper_frame.scrollable_frame)
+        frame.pack(fill="x", pady=2, padx=5)
         
-        def load_images():
-            futures = []
-            for idx, wallpaper in enumerate(self.wallpapers):
-                frame = ttk.Frame(self.wallpaper_frame.scrollable_frame)
-                frame.pack(fill="x", pady=2, padx=5)
-                
-                # Checkbox with stored variable
-                var = tk.BooleanVar()
-                self.wallpaper_checkboxes[wallpaper.id] = var  # Store checkbox variable
-                check = ttk.Checkbutton(frame, 
-                                      command=lambda w=wallpaper: self.toggle_wallpaper(w),
-                                      variable=var)
-                check.pack(side="left")
+        var = tk.BooleanVar()
+        self.wallpaper_checkboxes[wallpaper.id] = var
+        check = ttk.Checkbutton(frame, 
+                               command=lambda w=wallpaper: self.toggle_wallpaper(w),
+                               variable=var)
+        check.pack(side="left")
 
-                # Load preview image asynchronously
-                future = self.load_preview_image(wallpaper.preview_url)
-                futures.append((frame, future))
-
-                # Wallpaper ID and display buttons
-                ttk.Label(frame, text=f"ID: {wallpaper.id}").pack(side="left", padx=5)
-                self.create_display_buttons(frame, wallpaper)
-
-                # Update progress less frequently
-                if idx % 5 == 0:  # Update every 5 items
-                    progress['value'] = (idx + 1) / total * 100
-                    self.root.update_idletasks()  # Use update_idletasks instead of update
-
-            # Handle image loading results
-            def check_futures():
-                all_done = True
-                for frame, future in futures:
-                    if future.done():
-                        if not hasattr(frame, 'image_loaded'):
-                            img = future.result()
-                            if img:
-                                photo = ImageTk.PhotoImage(img)
-                                label = ttk.Label(frame, image=photo)
-                                label.image = photo
-                                label.pack(side="left")
-                            frame.image_loaded = True
-                    else:
-                        all_done = False
-                
-                if not all_done:
-                    self.root.after(100, check_futures)
-                else:
-                    progress.destroy()
-                    self.wallpaper_frame.scroll_to_top()
-
-            self.root.after(100, check_futures)
-
-        # Start loading images
-        self.root.after(100, load_images)
+        future = self.load_preview_image(wallpaper.preview_url)
+        def update_image():
+            if future.done():
+                img = future.result()
+                if img:
+                    photo = ImageTk.PhotoImage(img)
+                    label = ttk.Label(frame, image=photo)
+                    label.image = photo
+                    label.pack(side="left")
+            else:
+                self.root.after(100, update_image)
+        
+        self.root.after(100, update_image)
+        ttk.Label(frame, text=f"ID: {wallpaper.id}").pack(side="left", padx=5)
+        self.create_display_buttons(frame, wallpaper)
 
     def create_display_buttons(self, frame, wallpaper):
         """Create display control buttons including All Displays button"""
@@ -473,16 +483,12 @@ class LoginApp:
             self.wallpaper_checkboxes[wallpaper.id].set(not all_selected)
 
     def __del__(self):
-        """Cleanup when the application closes"""
-        self.change_queue.put((None, None))  # Signal worker to stop
+        """Enhanced cleanup"""
+        self.cleanup_tasks()
+        self.change_queue.put((None, None))
         self.wallpaper_manager.kill_all()
-        # Kill all running processes
-        for process in self.running_processes.values():
-            try:
-                os.killpg(os.getpgid(process.pid), 9)
-            except:
-                pass
         self.executor.shutdown(wait=False)
+        self.image_cache.clear()
 
 def main():
     root = tk.Tk()

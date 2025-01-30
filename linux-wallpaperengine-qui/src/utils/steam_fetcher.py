@@ -39,14 +39,8 @@ def fetch_wallpaper_ids(steam_url: str, cookies: Dict[str, str]) -> List[Wallpap
     return all_wallpapers
 
 def main():
-    steam_url = "https://steamcommunity.com/id/elessential/myworkshopfiles/"
-    cookies = {
-        'sessionid': 'your_session_id_here',
-        'steamLoginSecure': 'your_steam_login_secure_here',
-    }
-    wallpapers = fetch_wallpaper_ids(steam_url, cookies)
-    for wallpaper in wallpapers:
-        print(f"ID: {wallpaper.id}, Preview: {wallpaper.preview_url}")
+    """Remove hardcoded example"""
+    print("Please run through the GUI application")
 
 if __name__ == "__main__":
     main()

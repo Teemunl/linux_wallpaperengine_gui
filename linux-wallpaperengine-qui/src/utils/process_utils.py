@@ -121,6 +121,28 @@ class WallpaperManager:
         """Queue a wallpaper change request"""
         self.command_queue.put((display_name, wallpaper_id))
 
+    def change_wallpaper_all_displays(self, wallpaper_id, displays):
+        """Change wallpaper on multiple displays"""
+        with self.lock:
+            # First kill all existing wallpaper processes
+            for display in displays:
+                if display in self.processes:
+                    try:
+                        pgid = os.getpgid(self.processes[display])
+                        os.killpg(pgid, signal.SIGTERM)
+                    except Exception as e:
+                        print(f"Error killing process for display {display}: {e}")
+
+            # Small delay to ensure all processes are terminated
+            time.sleep(0.2)
+
+            # Start new processes for each display
+            for display in displays:
+                process = run_wallpaper_engine(wallpaper_id, display)
+                if process and process.poll() is None:
+                    self.processes[display] = process.pid
+                time.sleep(0.1)  # Small delay between starts
+
     def kill_all(self):
         """Kill all wallpaper processes"""
         self.running = False
