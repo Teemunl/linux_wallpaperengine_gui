@@ -30,7 +30,6 @@ To change the wallpaper, use the following command:
 python wallpaper_changer.py
 ```
 
-Replace `<wallpaper_id>` with the ID of the wallpaper you want to set.
 
 ## Fetching Wallpaper IDs
 
